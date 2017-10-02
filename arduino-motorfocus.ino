@@ -198,6 +198,8 @@ void loop() {
         EEPROM.put(0, currentPosition);
         lastSavedPosition = currentPosition;
         debugSerial.println("Save last position to EEPROM");
+        stepper.disableOutputs();
+        debugSerial.println("Disabled output pins");
       }
     }
   }
