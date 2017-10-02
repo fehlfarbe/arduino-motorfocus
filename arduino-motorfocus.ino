@@ -2,7 +2,7 @@
 #include <AccelStepper.h>
 #include <EEPROM.h>
 
-SoftwareSerial debugSerial(2, 3);
+SoftwareSerial debugSerial(7, 8);
 
 const int stepsPerRevolution = 32*64;  // change this to fit the number of steps per revolution
 const int maxSpeed = 10;
