@@ -190,8 +190,11 @@ void loop() {
     stepper.run();
   }
   else {
-    isRunning = false;
-    // @todo: turn stepper off, save point to EEPROM
+    if (isRunning) {
+      isRunning = false;
+      //update current position when stopped
+      currentPosition = stepper.currentPosition();
+    }
     if(millis() - millisLastMove > millisDisableDelay){
       // Save current location in EEPROM
       if (lastSavedPosition != currentPosition) {
