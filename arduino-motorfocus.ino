@@ -2,7 +2,7 @@
 #include <AccelStepper.h>
 #include <EEPROM.h>
 
-SoftwareSerial debugSerial(2, 3);
+SoftwareSerial debugSerial(7, 8);
 
 const int stepsPerRevolution = 32*64;  // change this to fit the number of steps per revolution
 const int maxSpeed = 10;
@@ -190,14 +190,19 @@ void loop() {
     stepper.run();
   }
   else {
-    isRunning = false;
-    // @todo: turn stepper off, save point to EEPROM
+    if (isRunning) {
+      isRunning = false;
+      //update current position when stopped
+      currentPosition = stepper.currentPosition();
+    }
     if(millis() - millisLastMove > millisDisableDelay){
       // Save current location in EEPROM
       if (lastSavedPosition != currentPosition) {
         EEPROM.put(0, currentPosition);
         lastSavedPosition = currentPosition;
         debugSerial.println("Save last position to EEPROM");
+        stepper.disableOutputs();
+        debugSerial.println("Disabled output pins");
       }
     }
   }
