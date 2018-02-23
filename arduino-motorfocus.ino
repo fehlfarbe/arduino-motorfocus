@@ -8,9 +8,9 @@
 
 SoftwareSerial debugSerial(7, 8);
 
-const int stepsPerRevolution = 32*64;  // change this to fit the number of steps per revolution
-const int maxSpeed = 10;
-const int maxCmd = 8;
+//const int stepsPerRevolution = 32*64;  // change this to fit the number of steps per revolution
+//const int maxSpeed = 10;
+//const int maxCmd = 8;
 
 // initialize the stepper library on pins 8 through 11:
 AccelStepper stepper(AccelStepper::FULL4WIRE, 6, 4, 5, 3, false);
@@ -21,7 +21,6 @@ int speedFactorRaw = 2;
 int speedMult = 30;
 
 // button
-
 long currentPosition = 0;
 long targetPosition = 0;
 long lastSavedPosition = 0;
@@ -219,7 +218,6 @@ void loop() {
       currentPosition = stepper.currentPosition();
   }  else {
     isRunning = false;
-    // @todo: turn stepper off, save point to EEPROM
     if(millis() - millisLastMove > millisDisableDelay){
       // Save current location in EEPROM
       if (lastSavedPosition != currentPosition) {
