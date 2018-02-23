@@ -2,11 +2,15 @@
 #include <AccelStepper.h>
 #include <EEPROM.h>
 
+#define BTN_IN 7
+#define BTN_OUT 8
+#define BTN_STEP 32
+
 SoftwareSerial debugSerial(2, 3);
 
-const int stepsPerRevolution = 32*64;  // change this to fit the number of steps per revolution
-const int maxSpeed = 10;
-const int maxCmd = 8;
+//const int stepsPerRevolution = 32*64;  // change this to fit the number of steps per revolution
+//const int maxSpeed = 10;
+//const int maxCmd = 8;
 
 // initialize the stepper library on pins 8 through 11:
 AccelStepper stepper(AccelStepper::FULL4WIRE, 6, 4, 5, 3, false);
@@ -16,7 +20,8 @@ int speedFactor = 16;
 int speedFactorRaw = 2;
 int speedMult = 30;
 
-long steps = 8;
+// button 
+
 long currentPosition = 0;
 long targetPosition = 0;
 long lastSavedPosition = 0;
@@ -45,6 +50,10 @@ void setup() {
   lastSavedPosition = currentPosition;
   debugSerial.print("Load last position from EEPROM...");
   debugSerial.println(lastSavedPosition);
+
+  // setup buttons
+  pinMode(BTN_IN, INPUT);
+  pinMode(BTN_OUT, INPUT);
 }
 
 void loop() {
@@ -183,13 +192,32 @@ void loop() {
     }
   }
 
+  int btn_in = digitalRead(BTN_IN);
+  int btn_out = digitalRead(BTN_OUT);
+
   // move motor if not done
   if (stepper.distanceToGo() != 0) {
     isRunning = true;
     millisLastMove = millis();
     stepper.run();
   }
-  else {
+  // handle manual buttons
+  else if( btn_in == HIGH || btn_out == HIGH ) {
+      stepper.enableOutputs();
+      while (btn_in == HIGH || btn_out == HIGH) {
+          if (btn_in == HIGH) {
+              stepper.move(BTN_STEP);
+          } else {
+              stepper.move(-BTN_STEP);
+          }
+          stepper.runSpeedToPosition();
+          btn_in = digitalRead(BTN_IN);
+          btn_out = digitalRead(BTN_OUT);
+      }
+      stepper.stop();
+      millisLastMove = millis();
+      currentPosition = stepper.currentPosition();
+  }  else {
     isRunning = false;
     // @todo: turn stepper off, save point to EEPROM
     if(millis() - millisLastMove > millisDisableDelay){
