@@ -6,11 +6,11 @@
 #define BTN_OUT 8
 #define BTN_STEP 32
 
-SoftwareSerial debugSerial(2, 3);
+SoftwareSerial debugSerial(7, 8);
 
-//const int stepsPerRevolution = 32*64;  // change this to fit the number of steps per revolution
-//const int maxSpeed = 10;
-//const int maxCmd = 8;
+const int stepsPerRevolution = 32*64;  // change this to fit the number of steps per revolution
+const int maxSpeed = 10;
+const int maxCmd = 8;
 
 // initialize the stepper library on pins 8 through 11:
 AccelStepper stepper(AccelStepper::FULL4WIRE, 6, 4, 5, 3, false);
@@ -20,7 +20,7 @@ int speedFactor = 16;
 int speedFactorRaw = 2;
 int speedMult = 30;
 
-// button 
+// button
 
 long currentPosition = 0;
 long targetPosition = 0;
@@ -226,6 +226,8 @@ void loop() {
         EEPROM.put(0, currentPosition);
         lastSavedPosition = currentPosition;
         debugSerial.println("Save last position to EEPROM");
+        stepper.disableOutputs();
+        debugSerial.println("Disabled output pins");
       }
     }
   }
