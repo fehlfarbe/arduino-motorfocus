@@ -6,6 +6,13 @@ Tested with Arduino Nano and cheap [28BYJ-48 stepper motor with driver](https://
 
 Updated 3D/CAD models for TS 65/420 Quadruplet are available at Thingiverse: https://www.thingiverse.com/thing:2063325
 
+## Wiring
+
+Wiring for 28BYJ-48 stepper motor with ULN2003A breakout board:
+![alt text](res/wiring.png)
+
+## Arduino-motorfocus mounted on TS65/420 Quadruplet
+
 ![alt text](res/image01.jpg)
 
 ![alt text](res/image02.jpg)
