@@ -1,15 +1,23 @@
 # arduino-motorfocus
 
-Simple moonlite focuser protocol implementation for Arduino and stepper motor. Temperature drift is not implemented yet.
+Simple moonlite focuser protocol implementation for Arduino and stepper motors. Temperature drift is not implemented yet.
 
-Tested with Arduino Nano and cheap [28BYJ-48 stepper motor with driver](https://arduino-info.wikispaces.com/SmallSteppers) and [INDI / Ekos](http://indilib.org).
+Tested with Arduino Nano and cheap [28BYJ-48 stepper motor with driver](https://arduino-info.wikispaces.com/SmallSteppers) and [INDI / Ekos](http://indilib.org). Works also with [Pololu A4988 Stepper Motor Driver](https://www.pololu.com/product/1182) (see wiring).
 
 Updated 3D/CAD models for TS 65/420 Quadruplet are available at Thingiverse: https://www.thingiverse.com/thing:2063325
 
 ## Wiring
 
-Wiring for 28BYJ-48 stepper motor with ULN2003A breakout board:
+### Wiring for 28BYJ-48 stepper motor with ULN2003A breakout board:
 ![alt text](res/wiring.png)
+
+### Wiring for A4988 driver
+Change Line #13 in `arduino-motorfocus.ino` from `//#define USE_DRIVER` to `#define USE_DRIVER`
+![alt text](res/wiring_driver.png)
+
+### Wiring for in/out buttons
+The internal pullups are active so you have to connect your buttons to GND.
+![alt text](res/wiring_buttons.png)
 
 ## Arduino-motorfocus mounted on TS65/420 Quadruplet
 

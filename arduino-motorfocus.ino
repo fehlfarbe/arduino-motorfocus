@@ -6,14 +6,21 @@
 #define BTN_OUT 8
 #define BTN_STEP 32
 
-SoftwareSerial debugSerial(7, 8);
+#define PIN_DRIVER_ENABLE 4
+#define PIN_DRIVER_DIR 5
+#define PIN_DRIVER_STEP 6
 
-//const int stepsPerRevolution = 32*64;  // change this to fit the number of steps per revolution
-//const int maxSpeed = 10;
-//const int maxCmd = 8;
+//#define USE_DRIVER
+
+SoftwareSerial debugSerial(9, 10);
 
 // initialize the stepper library on pins 8 through 11:
+#ifdef USE_DRIVER
+AccelStepper stepper(AccelStepper::DRIVER, PIN_DRIVER_STEP, PIN_DRIVER_DIR);
+#else
 AccelStepper stepper(AccelStepper::FULL4WIRE, 6, 4, 5, 3, false);
+#endif
+
 
 // multiplier of SPEEDMUX, currently max speed is 480.
 int speedFactor = 16;
@@ -36,10 +43,12 @@ void setup() {
   Serial.begin(9600);
   debugSerial.begin(9600);
 
-
   // initalize motor
   stepper.setMaxSpeed(speedFactor * speedMult);
-  stepper.setAcceleration(10);
+  stepper.setAcceleration(100);
+  #ifdef USE_DRIVER
+  stepper.setEnablePin(PIN_DRIVER_ENABLE);
+  #endif
   millisLastMove = millis();
     
   // read saved position from EEPROM
@@ -51,8 +60,8 @@ void setup() {
   debugSerial.println(lastSavedPosition);
 
   // setup buttons
-  pinMode(BTN_IN, INPUT);
-  pinMode(BTN_OUT, INPUT);
+  pinMode(BTN_IN, INPUT_PULLUP);
+  pinMode(BTN_OUT, INPUT_PULLUP);
 }
 
 void loop() {
@@ -176,7 +185,6 @@ void loop() {
     // initiate a move
     if (cmd.equalsIgnoreCase("FG")) {
       //isRunning = 1;
-      //stepper.enableOutputs();
       //running = true;
       stepper.enableOutputs();
       stepper.moveTo(targetPosition);
@@ -201,10 +209,10 @@ void loop() {
     stepper.run();
   }
   // handle manual buttons
-  else if( btn_in == HIGH || btn_out == HIGH ) {
+  else if( btn_in == LOW || btn_out == LOW ) {
       stepper.enableOutputs();
-      while (btn_in == HIGH || btn_out == HIGH) {
-          if (btn_in == HIGH) {
+      while (btn_in == LOW || btn_out == LOW) {
+          if (btn_in == LOW) {
               stepper.move(BTN_STEP);
           } else {
               stepper.move(-BTN_STEP);
@@ -214,6 +222,7 @@ void loop() {
           btn_out = digitalRead(BTN_OUT);
       }
       stepper.stop();
+      stepper.disableOutputs();
       millisLastMove = millis();
       currentPosition = stepper.currentPosition();
   }  else {
