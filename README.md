@@ -5,6 +5,7 @@ Simple moonlite focuser protocol implementation for Arduino and stepper motors. 
 Tested with Arduino Nano and cheap [28BYJ-48 stepper motor with driver](https://arduino-info.wikispaces.com/SmallSteppers) and [INDI / Ekos](http://indilib.org). Works also with [Pololu A4988 Stepper Motor Driver](https://www.pololu.com/product/1182) (see wiring).
 
 Updated 3D/CAD models for TS 65/420 Quadruplet are available at Thingiverse: https://www.thingiverse.com/thing:2063325
+Motor focuser for Starlight Feather Touch 2" by Cover1987: https://www.thingiverse.com/thing:3593910
 
 ## Wiring
 
