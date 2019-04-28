@@ -10,7 +10,7 @@
 #define PIN_DRIVER_DIR 3
 #define PIN_DRIVER_STEP 5
 
-#define USE_DRIVER
+//#define USE_DRIVER
 
 SoftwareSerial debugSerial(9, 10);
 
