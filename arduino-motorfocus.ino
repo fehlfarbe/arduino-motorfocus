@@ -1,6 +1,8 @@
 #include <SoftwareSerial.h>
 #include <AccelStepper.h>
 #include <EEPROM.h>
+#include <OneWire.h> 
+#include <DallasTemperature.h>
 
 #define BTN_IN 7
 #define BTN_OUT 8
@@ -9,6 +11,8 @@
 #define PIN_DRIVER_ENABLE 4
 #define PIN_DRIVER_DIR 3
 #define PIN_DRIVER_STEP 5
+
+#define ONE_WIRE_BUS 2
 
 //#define USE_DRIVER
 
@@ -21,11 +25,16 @@ AccelStepper stepper(AccelStepper::DRIVER, PIN_DRIVER_STEP, PIN_DRIVER_DIR);
 AccelStepper stepper(AccelStepper::FULL4WIRE, 6, 4, 5, 3, false);
 #endif
 
+// temperature
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature sensors(&oneWire);
 
 // multiplier of SPEEDMUX, currently max speed is 480.
 int speedFactor = 16;
 int speedFactorRaw = 2;
 int speedMult = 30;
+
+float t_coeff = 0;
 
 // button
 long currentPosition = 0;
@@ -58,6 +67,9 @@ void setup() {
   lastSavedPosition = currentPosition;
   debugSerial.print("Load last position from EEPROM...");
   debugSerial.println(lastSavedPosition);
+
+  // init temperature sensor
+  sensors.begin(); 
 
   // setup buttons
   pinMode(BTN_IN, INPUT_PULLUP);
@@ -123,14 +135,48 @@ void loop() {
       debugSerial.print("target motor position: ");
       debugSerial.println(tempString);
     }
-    // get the current temperature, hard-coded
+    // get the current temperature from DS1820 temperature sensor
     if (cmd.equalsIgnoreCase("GT")) {
-      Serial.print("0020#");
+      sensors.requestTemperatures();
+      float temperature = sensors.getTempCByIndex(0);
+      debugSerial.print("temperature: ");
+      debugSerial.println(temperature);
+      if(temperature > 100 || temperature < -50){
+        // error
+        temperature = 0;
+      }
+      byte t_int = (byte)temperature << 1;
+      t_int += round(temperature - (byte) temperature);
+      Serial.print(t_int, HEX);
+      Serial.print('#');
     }
 
-    // get the temperature coefficient, hard-coded
+    // get the temperature coefficient
     if (cmd.equalsIgnoreCase("GC")) {
-      Serial.print("02#");
+      //Serial.print("02#");
+      Serial.print((byte)t_coeff, HEX);
+      Serial.print('#');
+    }
+    
+    // set the temperature coefficient
+    if (cmd.equalsIgnoreCase("SC")) {
+      //debugSerial.println(param);
+      if(param.length() > 4){
+        param = param.substring(param.length()-4);
+      }
+      debugSerial.println(param);
+      
+      if(param.startsWith("F")){
+        //debugSerial.println("negative");
+        //debugSerial.println(strtol("FFFF", NULL, 16));
+        //debugSerial.println(strtol(param.c_str(), NULL, 16));
+        t_coeff = ((0xFFFF - strtol(param.c_str(), NULL, 16)) / -2.0f) -0.5f;
+      } else {
+        t_coeff = strtol(param.c_str(), NULL, 16) / 2.0f;
+      }
+      debugSerial.print("t_coeff: ");
+      debugSerial.println(t_coeff);
+      //Serial.print("02#");
     }
     
     // get the current motor speed, only values of 02, 04, 08, 10, 20
@@ -264,5 +310,5 @@ long hexstr2long(String line) {
   long ret = 0;
 
   ret = strtol(buf, NULL, 16);
-  return (ret);
+  return ret;
 }

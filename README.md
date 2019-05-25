@@ -20,6 +20,10 @@ Change Line #13 in `arduino-motorfocus.ino` from `//#define USE_DRIVER` to `#def
 The internal pullups are active so you have to connect your buttons to GND.
 ![alt text](res/wiring_buttons.png)
 
+### Wiring for temperature sensor DS18B20
+You need a 4.7kΩ pullup resistor. If there is no sensor attached the temperatur will be zero.
+![alt text](res/wiring_temperature.png)
+
 ## Arduino-motorfocus mounted on TS65/420 Quadruplet
 
 ![alt text](res/image01.jpg)
