@@ -1,6 +1,6 @@
 # arduino-motorfocus
 
-Simple moonlite focuser protocol implementation for Arduino and stepper motors. Temperature drift is not implemented yet.
+Simple moonlite focuser protocol implementation for Arduino and stepper motors.
 
 Tested with Arduino Nano and cheap [28BYJ-48 stepper motor with driver](https://arduino-info.wikispaces.com/SmallSteppers) and [INDI / Ekos](http://indilib.org). Works also with [Pololu A4988 Stepper Motor Driver](https://www.pololu.com/product/1182) (see wiring).
 
