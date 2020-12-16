@@ -37,7 +37,7 @@ int speedMult = 30;
 float t_coeff = 0;
 
 // button
-long currentPosition = 0;
+unsigned long currentPosition = 0;
 long targetPosition = 0;
 long lastSavedPosition = 0;
 long millisLastMove = 0;
@@ -52,6 +52,8 @@ void setup() {
   Serial.begin(9600);
   debugSerial.begin(9600);
 
+  debugSerial.println("init");
+
   // initalize motor
   stepper.setMaxSpeed(speedFactor * speedMult);
   stepper.setAcceleration(100);
@@ -63,9 +65,12 @@ void setup() {
   // read saved position from EEPROM
   //EEPROM.put(0, (long)0);
   EEPROM.get(0, currentPosition);
+  // prevent negative values if EEPROM is empty
+  currentPosition = max(0, currentPosition);
+    
   stepper.setCurrentPosition(currentPosition);
   lastSavedPosition = currentPosition;
-  debugSerial.print("Load last position from EEPROM...");
+  debugSerial.print("Last position in EEPROM...");
   debugSerial.println(lastSavedPosition);
 
   // init temperature sensor
@@ -80,7 +85,8 @@ void loop() {
  
   // process the command we got
   if (eoc) {
-    //Serial.println(line);
+    debugSerial.print("Got new command: ");
+    debugSerial.println(line);
     String cmd, param;
     int len = line.length();
     if (len >= 2) {
@@ -90,10 +96,11 @@ void loop() {
       param = line.substring(2);
     }
     
-    //debugSerial.print(cmd);
-    //debugSerial.print(":");
-    //debugSerial.println(param);
-    //debugSerial.println(line);
+    debugSerial.print(cmd);
+    debugSerial.print(":");
+    debugSerial.println(param);
+    debugSerial.println(line);
+    
     line = "";
     eoc = false;
 
