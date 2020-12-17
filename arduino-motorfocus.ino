@@ -52,7 +52,7 @@ void setup() {
   Serial.begin(9600);
   debugSerial.begin(9600);
 
-  debugSerial.println("init");
+  debugSerial.println("init motor driver...");
 
   // initalize motor
   stepper.setMaxSpeed(speedFactor * speedMult);
@@ -87,6 +87,13 @@ void loop() {
   if (eoc) {
     debugSerial.print("Got new command: ");
     debugSerial.println(line);
+
+    if(line.startsWith("2")){
+      debugSerial.println("Got Dual focuser command(?) starting with 2. Send values of first motor");
+      // remove first character and parse command
+      line = line.substring(1);
+    }
+    
     String cmd, param;
     int len = line.length();
     if (len >= 2) {
