@@ -3,6 +3,7 @@
 #include <EEPROM.h>
 #include <OneWire.h> 
 #include <DallasTemperature.h>
+#include <TimerOne.h>
 
 #define BTN_IN 7
 #define BTN_OUT 8
@@ -13,6 +14,8 @@
 #define PIN_DRIVER_STEP 5
 
 #define ONE_WIRE_BUS 2
+
+#define PERIOD  2000
 
 //#define USE_DRIVER
 
@@ -79,6 +82,10 @@ void setup() {
   // setup buttons
   pinMode(BTN_IN, INPUT_PULLUP);
   pinMode(BTN_OUT, INPUT_PULLUP);
+  
+  // init timer
+  Timer1.initialize(PERIOD);
+  Timer1.attachInterrupt(intHandler);
 }
 
 void loop() {
@@ -266,7 +273,6 @@ void loop() {
   if (stepper.distanceToGo() != 0) {
     isRunning = true;
     millisLastMove = millis();
-    stepper.run();
   }
   // handle manual buttons
   else if( btn_in == LOW || btn_out == LOW ) {
@@ -325,4 +331,8 @@ long hexstr2long(String line) {
 
   ret = strtol(buf, NULL, 16);
   return ret;
+}
+
+static void intHandler() {
+        stepper.run();
 }
