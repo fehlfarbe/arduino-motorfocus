@@ -34,7 +34,7 @@ DallasTemperature sensors(&oneWire);
 
 // multiplier of SPEEDMUX, currently max speed is 480.
 int speedFactor = 16;
-int speedFactorRaw = 2;
+int speedFactorRaw = 4;
 int speedMult = 30;
 
 float t_coeff = 0;
@@ -235,7 +235,7 @@ void loop() {
     }  
     // set current motor position
     if (cmd.equalsIgnoreCase("SP")) {
-      currentPosition = hexstr2long(param) * 16;
+      currentPosition = hexstr2long(param);
       stepper.setCurrentPosition(currentPosition);      
     }
     // set new motor position
@@ -244,7 +244,7 @@ void loop() {
       debugSerial.print("new target position ");
       debugSerial.print(targetPosition);
       debugSerial.print(" -> ");
-      targetPosition = hexstr2long(param) * 16;
+      targetPosition = hexstr2long(param);
       debugSerial.println(targetPosition);
       //Serial.println(targetPosition);
       //stepper.moveTo(pos);
@@ -326,7 +326,7 @@ void serialEvent () {
 
 long hexstr2long(String line) {
   char buf[line.length()+1];
-  line.toCharArray(buf, line.length());
+  line.toCharArray(buf, line.length()+1);
   long ret = 0;
 
   ret = strtol(buf, NULL, 16);
