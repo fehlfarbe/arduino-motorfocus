@@ -4,6 +4,7 @@
 #include <OneWire.h> 
 #include <DallasTemperature.h>
 #include <TimerOne.h>
+#include "DummySerial.h"
 
 #define BTN_IN 7
 #define BTN_OUT 8
@@ -19,7 +20,12 @@
 
 //#define USE_DRIVER
 
+//#define DEBUG
+#ifdef DEBUG
 SoftwareSerial debugSerial(9, 10);
+#else
+DummySerial debugSerial;
+#endif
 
 // initialize the stepper library on pins 8 through 11:
 #ifdef USE_DRIVER
