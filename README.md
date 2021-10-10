@@ -7,6 +7,13 @@ Tested with Arduino Nano and cheap [28BYJ-48 stepper motor with driver](https://
 Updated 3D/CAD models for TS 65/420 Quadruplet are available at Thingiverse: <https://www.thingiverse.com/thing:2063325>
 Motor focuser for Starlight Feather Touch 2" by Cover1987: <https://www.thingiverse.com/thing:3593910>
 
+## Installation
+
+1. Download and install [PlatformIO](https://platformio.org/install/ide?install=vscode)
+2. Clone or download this project and unzip it
+3. Open project with PlatformIO
+4. Select config (**Default**|**A4988driver**) in bottom bar and upload to Arduino Nano (PlatformIO will download needed libraries automatically) ![VSCode settings](res/screenshot_vscode.png)
+
 ## Wiring
 
 ### Wiring for 28BYJ-48 stepper motor with ULN2003A breakout board
@@ -15,7 +22,7 @@ Motor focuser for Starlight Feather Touch 2" by Cover1987: <https://www.thingive
 
 ### Wiring for A4988 driver
 
-Change Line #13 in `arduino-motorfocus.ino` from `//#define USE_DRIVER` to `#define USE_DRIVER`
+Select config `A4988driver` in VSCode bottom bar (step 4)
 ![Stepper with driver wiring](res/wiring_driver.png)
 
 ### Wiring for in/out buttons
