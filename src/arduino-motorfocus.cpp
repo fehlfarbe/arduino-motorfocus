@@ -47,9 +47,9 @@ int speedMult = 30;
 float t_coeff = 0;
 
 // button
-unsigned long currentPosition = 0;
+long currentPosition = 0;
 long targetPosition = 0;
-unsigned long lastSavedPosition = 0;
+long lastSavedPosition = 0;
 long millisLastMove = 0;
 const long millisDisableDelay = 15000;
 bool isRunning = false;
@@ -61,6 +61,9 @@ String line;
 // function declarations
 long hexstr2long(String line);
 static void intHandler();
+
+// Sparkfun Pro Micro does not call serialEvent after loop() so diy
+void SerialEvent();
 
 /*************************************
  * SETUP
@@ -89,6 +92,9 @@ void setup()
   // prevent negative values if EEPROM is empty
   currentPosition = max(0, currentPosition);
 
+  // on restart, make target position same as recovered position
+  targetPosition = currentPosition;
+
   stepper.setCurrentPosition(currentPosition);
   lastSavedPosition = currentPosition;
   debugSerial.print("Last position in EEPROM...");
@@ -111,8 +117,7 @@ void setup()
 *************************************/
 void loop()
 {
-
-  // process the command we got
+  // process command
   if (eoc)
   {
     debugSerial.print("Got new command: ");
@@ -166,7 +171,7 @@ void loop()
     {
       currentPosition = stepper.currentPosition();
       char tempString[6];
-      sprintf(tempString, "%04X", currentPosition);
+      sprintf(tempString, "%04lX", currentPosition);
       Serial.print(tempString);
       Serial.print("#");
 
@@ -180,7 +185,7 @@ void loop()
     {
       //pos = stepper.targetPosition();
       char tempString[6];
-      sprintf(tempString, "%04X", targetPosition);
+      sprintf(tempString, "%04lX", targetPosition);
       Serial.print(tempString);
       Serial.print("#");
 
@@ -279,13 +284,13 @@ void loop()
         Serial.print("00#");
       }
     }
-    // set current motor position
+    // set current motor position to given value
     if (cmd.equalsIgnoreCase("SP"))
     {
       currentPosition = hexstr2long(param);
       stepper.setCurrentPosition(currentPosition);
     }
-    // set new motor position
+    // set new motor target position
     if (cmd.equalsIgnoreCase("SN"))
     {
       //Serial.println(param);
@@ -314,20 +319,24 @@ void loop()
       //running = false;
       stepper.stop();
     }
-  }
+  } // process command
 
+  // read button controls
   int btn_in = digitalRead(BTN_IN);
   int btn_out = digitalRead(BTN_OUT);
 
-  // move motor if not done
+  // continue to move motor if not done
   if (stepper.distanceToGo() != 0)
   {
     isRunning = true;
     millisLastMove = millis();
   }
-
+  else
+  {
+    isRunning = false;
+  
   // handle manual buttons
-  else if (btn_in == LOW || btn_out == LOW)
+  if (btn_in == LOW || btn_out == LOW) 
   {
     stepper.enableOutputs();
     while (btn_in == LOW || btn_out == LOW)
@@ -351,8 +360,8 @@ void loop()
   }
   else
   {
-    isRunning = false;
-    if (millis() - millisLastMove > millisDisableDelay)
+    // check if we want to disable outputs and save position in EEPROM
+    if ((millis() - millisLastMove) > millisDisableDelay)
     {
       // Save current location in EEPROM
       if (lastSavedPosition != currentPosition)
@@ -366,14 +375,16 @@ void loop()
       debugSerial.println("Disabled output pins");
     }
   }
-
+  }
   digitalWrite(LED_BUILTIN, isRunning);
 
+  // serialEvent is not called automatically in all arduino boards, so force that
+  if (Serial.available()) SerialEvent();
   //delay(20);
 }
 
 // read the command until the terminating # character
-void serialEvent()
+void SerialEvent()
 {
   // read the command until the terminating # character
   while (Serial.available() && !eoc)

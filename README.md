@@ -74,3 +74,37 @@ You can also connect an USB-TTL converter to GPIO 10 to see all commands sent by
 ![alt text](res/image01.jpg)
 
 ![alt text](res/image02.jpg)
+
+
+## Compilation errors regarding SoftwareSerial V1.0
+
+If you run into the error
+
+```
+Indexing .pio/build/debug/lib49b/libSoftwareSerial.a
+Linking .pio/build/debug/firmware.elf
+/tmp/ccu8bgbf.s: Assembler messages:
+/tmp/ccu8bgbf.s:10016: Error: register r24, r26, r28 or r30 required
+/tmp/ccu8bgbf.s:10105: Error: register r24, r26, r28 or r30 required
+lto-wrapper: fatal error: avr-g++ returned 1 exit status
+```
+you can make the below changes in SoftwareSerial.cpp (under .pio/libdeps in vscode)
+
+```
+/* static */ 
+inline void SoftwareSerial::tunedDelay(uint16_t delay) { 
+  uint8_t tmp=0;
+//
+// changed +r tp +w below. See
+// https://andrey.mikhalchuk.com/2010/06/19/fix-error-register-r24-r26-r28-or-r30-required.html
+//
+  asm volatile("sbiw    %0, 0x01 \n\t"
+    "ldi %1, 0xFF \n\t"
+    "cpi %A0, 0xFF \n\t"
+    "cpc %B0, %1 \n\t"
+    "brne .-10 \n\t"
+    : "+w" (delay), "+a" (tmp)
+    : "0" (delay)
+    );
+}
+```
