@@ -49,7 +49,7 @@ float t_coeff = 0;
 // button
 unsigned long currentPosition = 0;
 long targetPosition = 0;
-long lastSavedPosition = 0;
+unsigned long lastSavedPosition = 0;
 long millisLastMove = 0;
 const long millisDisableDelay = 15000;
 bool isRunning = false;
@@ -325,7 +325,7 @@ void loop()
     isRunning = true;
     millisLastMove = millis();
   }
-  
+
   // handle manual buttons
   else if (btn_in == LOW || btn_out == LOW)
   {
@@ -360,9 +360,10 @@ void loop()
         EEPROM.put(0, currentPosition);
         lastSavedPosition = currentPosition;
         debugSerial.println("Save last position to EEPROM");
-        stepper.disableOutputs();
-        debugSerial.println("Disabled output pins");
       }
+      // set motor to sleep state
+      stepper.disableOutputs();
+      debugSerial.println("Disabled output pins");
     }
   }
 
