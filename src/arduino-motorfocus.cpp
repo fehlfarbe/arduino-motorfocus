@@ -1,5 +1,7 @@
 #include <Arduino.h>
+#ifdef DEBUG
 #include <SoftwareSerial.h>
+#endif
 #include <AccelStepper.h>
 #include <EEPROM.h>
 #include <OneWire.h>
@@ -334,52 +336,53 @@ void loop()
   else
   {
     isRunning = false;
-  
-  // handle manual buttons
-  if (btn_in == LOW || btn_out == LOW) 
-  {
-    stepper.enableOutputs();
-    while (btn_in == LOW || btn_out == LOW)
+
+    // handle manual buttons
+    if (btn_in == LOW || btn_out == LOW)
     {
-      if (btn_in == LOW)
+      stepper.enableOutputs();
+      while (btn_in == LOW || btn_out == LOW)
       {
-        stepper.move(BTN_STEP);
+        if (btn_in == LOW)
+        {
+          stepper.move(BTN_STEP);
+        }
+        else
+        {
+          stepper.move(-BTN_STEP);
+        }
+        stepper.runSpeedToPosition();
+        btn_in = digitalRead(BTN_IN);
+        btn_out = digitalRead(BTN_OUT);
       }
-      else
-      {
-        stepper.move(-BTN_STEP);
-      }
-      stepper.runSpeedToPosition();
-      btn_in = digitalRead(BTN_IN);
-      btn_out = digitalRead(BTN_OUT);
-    }
-    stepper.stop();
-    stepper.disableOutputs();
-    millisLastMove = millis();
-    currentPosition = stepper.currentPosition();
-  }
-  else
-  {
-    // check if we want to disable outputs and save position in EEPROM
-    if ((millis() - millisLastMove) > millisDisableDelay)
-    {
-      // Save current location in EEPROM
-      if (lastSavedPosition != currentPosition)
-      {
-        EEPROM.put(0, currentPosition);
-        lastSavedPosition = currentPosition;
-        debugSerial.println("Save last position to EEPROM");
-      }
-      // set motor to sleep state
+      stepper.stop();
       stepper.disableOutputs();
-      debugSerial.println("Disabled output pins");
+      millisLastMove = millis();
+      currentPosition = stepper.currentPosition();
     }
-  }
+    else
+    {
+      // check if we want to disable outputs and save position in EEPROM
+      if ((millis() - millisLastMove) > millisDisableDelay)
+      {
+        // Save current location in EEPROM
+        if (lastSavedPosition != currentPosition)
+        {
+          EEPROM.put(0, currentPosition);
+          lastSavedPosition = currentPosition;
+          debugSerial.println("Save last position to EEPROM");
+        }
+        // set motor to sleep state
+        stepper.disableOutputs();
+        debugSerial.println("Disabled output pins");
+      }
+    }
   }
   digitalWrite(LED_BUILTIN, isRunning);
 
   // serialEvent is not called automatically in all arduino boards, so force that
-  if (Serial.available()) SerialEvent();
+  if (Serial.available())
+    SerialEvent();
   //delay(20);
 }
 
