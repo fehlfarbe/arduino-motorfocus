@@ -11,7 +11,7 @@
 #define BTN_OUT 8
 #define BTN_STEP 32
 
-#define PIN_DRIVER_ENABLE 4
+#define PIN_DRIVER_SLEEP 4
 #define PIN_DRIVER_DIR 3
 #define PIN_DRIVER_STEP 5
 
@@ -79,7 +79,7 @@ void setup()
   stepper.setMaxSpeed(speedFactor * speedMult);
   stepper.setAcceleration(100);
 #ifdef USE_DRIVER
-  stepper.setEnablePin(PIN_DRIVER_ENABLE);
+  stepper.setEnablePin(PIN_DRIVER_SLEEP);
 #endif
   millisLastMove = millis();
 

@@ -12,7 +12,9 @@ Motor focuser for Starlight Feather Touch 2" by Cover1987: <https://www.thingive
 1. Download and install [PlatformIO](https://platformio.org/install/ide?install=vscode)
 2. Clone or download this project and unzip it
 3. Open project with PlatformIO
-4. Select config (**Default**|**A4988driver**) in bottom bar and upload to Arduino Nano (PlatformIO will download needed libraries automatically) ![VSCode settings](res/screenshot_vscode.png)
+4. Select the right config for your microcontroller e.g. `nanoatmega328` for Arduino Nano with 28BYJ-48 stepper, `promicro16` for Sparkfun Pro Mirco with 28BYJ-48 stepper or `nanoatmega328_A988driver` for Arduino Nano with A4988driver support in the bottom bar and upload to your Arduino (PlatformIO will download needed libraries automatically)
+
+![VSCode settings](res/screenshot_vscode.png)
 
 ## Wiring
 
