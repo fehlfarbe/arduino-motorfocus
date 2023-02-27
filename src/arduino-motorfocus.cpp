@@ -48,11 +48,12 @@ float t_coeff = 0;
 
 // button
 unsigned long currentPosition = 0;
-long targetPosition = 0;
+unsigned long targetPosition = 0;
 unsigned long lastSavedPosition = 0;
 long millisLastMove = 0;
 const long millisDisableDelay = 15000;
 bool isRunning = false;
+bool isEnabled = false;
 
 // read commands
 bool eoc = false;
@@ -79,7 +80,10 @@ void setup()
   stepper.setMaxSpeed(speedFactor * speedMult);
   stepper.setAcceleration(100);
 #ifdef USE_DRIVER
+  debugSerial.println("Using A4988 driver");
   stepper.setEnablePin(PIN_DRIVER_SLEEP);
+  stepper.disableOutputs();
+  isEnabled = false;
 #endif
   millisLastMove = millis();
 
@@ -91,6 +95,7 @@ void setup()
 
   stepper.setCurrentPosition(currentPosition);
   lastSavedPosition = currentPosition;
+  targetPosition = currentPosition;
   debugSerial.print("Last position in EEPROM...");
   debugSerial.println(lastSavedPosition);
 
@@ -130,16 +135,23 @@ void loop()
     if (len >= 2)
     {
       cmd = line.substring(0, 2);
+    } else {
+      cmd = line.substring(0, 1);
     }
     if (len > 2)
     {
       param = line.substring(2);
     }
 
-    debugSerial.print(cmd);
-    debugSerial.print(":");
-    debugSerial.println(param);
+    debugSerial.print("Got line: ");
     debugSerial.println(line);
+    debugSerial.print("Command: ");
+    debugSerial.print(cmd);
+    if(param.length()){
+      debugSerial.print(" Param: ");
+      debugSerial.print(param);
+    }
+    debugSerial.println();
 
     line = "";
     eoc = false;
@@ -161,12 +173,21 @@ void loop()
     {
       Serial.print("10#");
     }
+    // Initiate a temperature conversion the conversion
+    // process takes a maximum of 750 milliseconds. The
+    // value returned by the :GT# command will not be
+    // valid until the conversion process completes.
+    if (cmd.equalsIgnoreCase("C"))
+    {
+      debugSerial.println("No temperature conversion implemented, yet");
+      // Serial.print("10#");
+    }
     // get the current motor position
     if (cmd.equalsIgnoreCase("GP"))
     {
       currentPosition = stepper.currentPosition();
       char tempString[6];
-      sprintf(tempString, "%04X", currentPosition);
+      sprintf(tempString, "%04lX", currentPosition);
       Serial.print(tempString);
       Serial.print("#");
 
@@ -180,7 +201,7 @@ void loop()
     {
       //pos = stepper.targetPosition();
       char tempString[6];
-      sprintf(tempString, "%04X", targetPosition);
+      sprintf(tempString, "%04lX", targetPosition);
       Serial.print(tempString);
       Serial.print("#");
 
@@ -199,6 +220,8 @@ void loop()
         // error
         temperature = 0;
       }
+      debugSerial.print("Current temperature ");
+      debugSerial.println(temperature);
       byte t_int = (byte)temperature << 1;
       t_int += round(temperature - (byte)temperature);
       Serial.print(t_int, HEX);
@@ -273,10 +296,15 @@ void loop()
       if (abs(targetPosition - currentPosition) > 0)
       {
         Serial.print("01#");
+        debugSerial.print("Motor is moving, target = ");
+        debugSerial.print(targetPosition);
+        debugSerial.print(" current = ");
+        debugSerial.println(currentPosition);
       }
       else
       {
         Serial.print("00#");
+        debugSerial.println("Motor is not moving");
       }
     }
     // set current motor position
@@ -303,6 +331,7 @@ void loop()
       //isRunning = 1;
       //running = true;
       stepper.enableOutputs();
+      isEnabled = true;
       stepper.moveTo(targetPosition);
     }
     // stop a move
@@ -324,52 +353,71 @@ void loop()
   {
     isRunning = true;
     millisLastMove = millis();
+    currentPosition = stepper.currentPosition();
   }
-
   // handle manual buttons
   else if (btn_in == LOW || btn_out == LOW)
   {
-    stepper.enableOutputs();
+    if(!isEnabled){
+      stepper.enableOutputs();
+      isEnabled = true;
+    }
     while (btn_in == LOW || btn_out == LOW)
     {
+      int8_t step = 0;
       if (btn_in == LOW)
       {
-        stepper.move(BTN_STEP);
+        step = BTN_STEP;
+        debugSerial.println("Button forward");
       }
-      else
+      else if(btn_out == LOW)
       {
-        stepper.move(-BTN_STEP);
+        // prevent negative values
+        step = -min(stepper.currentPosition(), BTN_STEP);
+        debugSerial.println("Button backward");
       }
+      debugSerial.print("Moving to ");
+      debugSerial.println(stepper.currentPosition() + step);
+      stepper.move(step);
       stepper.runSpeedToPosition();
+
       btn_in = digitalRead(BTN_IN);
       btn_out = digitalRead(BTN_OUT);
     }
     stepper.stop();
-    stepper.disableOutputs();
+    // ensure the stepper isn't moving anymore
+    while(stepper.distanceToGo()){
+      stepper.run();
+    }
+    
     millisLastMove = millis();
-    currentPosition = stepper.currentPosition();
+    currentPosition = targetPosition = stepper.currentPosition();
   }
   else
   {
-    isRunning = false;
+    // check if motor was'nt moved for several seconds and save position and disable motors
     if (millis() - millisLastMove > millisDisableDelay)
     {
+      isRunning = false;
       // Save current location in EEPROM
       if (lastSavedPosition != currentPosition)
       {
         EEPROM.put(0, currentPosition);
         lastSavedPosition = currentPosition;
-        debugSerial.println("Save last position to EEPROM");
+        debugSerial.print("Save last position ");
+        debugSerial.print(lastSavedPosition);
+        debugSerial.println(" to EEPROM");
       }
-      // set motor to sleep state
-      stepper.disableOutputs();
-      debugSerial.println("Disabled output pins");
+      if(isEnabled){
+        // set motor to sleep state
+        stepper.disableOutputs();
+        isEnabled = false;
+        debugSerial.println("Disabled output pins");
+      }
     }
   }
 
   digitalWrite(LED_BUILTIN, isRunning);
-
-  //delay(20);
 }
 
 // read the command until the terminating # character
