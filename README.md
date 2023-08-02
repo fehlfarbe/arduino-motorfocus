@@ -49,7 +49,7 @@ This happens because the setup opens all COM ports, sends a command and waits fo
 
 1. You can flash the [MiniCore Bootloader](https://github.com/MCUdude/MiniCore) to your Arduino. This bootloader is faster and in my tests it was fast enough to get detected by the setup
 
-2. Just install a 10nF between RST and GND or remove the 100nF capacitor on the bottom of your Nano. You can see an image of the capacitor and further explanation on [this website](https://www.astroscopic.com/blog/disable-arduinos-auto-reset-connection)
+2. Just install a 10µF or 33µF between RST and GND or remove the 100nF capacitor on the bottom of your Nano. You can see an image of the capacitor and further explanation on [this website](https://www.astroscopic.com/blog/disable-arduinos-auto-reset-connection)
 
 3. Use a different Microcontroller like Arduino Pro Mini with an external USB-TTL converter and dont't connect the DTR line
 
