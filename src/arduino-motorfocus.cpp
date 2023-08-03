@@ -110,7 +110,7 @@ void setup()
   // setup buttons
   pinMode(BTN_IN, INPUT_PULLUP);
   pinMode(BTN_OUT, INPUT_PULLUP);
-  pinMode(BTN_POTI_SPEED, INPUT);
+  pinMode(BTN_POTI_SPEED, INPUT_PULLUP);
 
   // init timer
   Timer1.initialize(PERIOD_US);
@@ -498,5 +498,9 @@ static void intHandler()
 
 int readButtonSpeed()
 {
-  return max(min(map(analogRead(BTN_POTI_SPEED), 128, 900, BTN_MIN_SPEED, BTN_MAX_SPEED), BTN_MAX_SPEED), BTN_MIN_SPEED);
+  // analogRead 0 -> max speed, 1023 -> min speed so if there is nothing connected 
+  // the motor will run with minimal speed and it allows to use a button connected
+  // to GND instead of a poti to switch from min to max speed
+  auto speedVal = map(analogRead(BTN_POTI_SPEED), 900, 50, BTN_MIN_SPEED, BTN_MAX_SPEED);
+  return max(min(speedVal, BTN_MAX_SPEED), BTN_MIN_SPEED);
 }
