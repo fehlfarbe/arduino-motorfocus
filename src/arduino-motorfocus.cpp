@@ -10,10 +10,9 @@
 #define BTN_IN 7
 #define BTN_OUT 8
 #define BTN_POTI_SPEED A0
-#define BTN_MIN_STEP 32
-#define BTN_MAX_STEP 256
-#define BTN_MIN_SPEED 24
+#define BTN_MIN_SPEED 8
 #define BTN_MAX_SPEED 512
+#define BTN_ACCEL_FACTOR 1.2f
 
 #define PIN_DRIVER_SLEEP 4
 #define PIN_DRIVER_DIR 3
@@ -58,6 +57,7 @@ long millisLastMove = 0;
 const long millisDisableDelay = 15000;
 bool isRunning = false;
 bool isEnabled = false;
+bool isInManualMode = false;
 
 // read commands
 bool eoc = false;
@@ -360,6 +360,8 @@ void loop()
   // move motor if not done
   if (stepper.distanceToGo() != 0)
   {
+    debugSerial.print("Has distance to go: ");
+    debugSerial.println(stepper.distanceToGo());
     isRunning = true;
     millisLastMove = millis();
     currentPosition = stepper.currentPosition();
@@ -367,6 +369,7 @@ void loop()
   // handle manual buttons
   else if (btn_in == LOW || btn_out == LOW)
   {
+    isInManualMode = true;
     // enable motor outputs if motor is idle
     if (!isEnabled)
     {
@@ -376,56 +379,41 @@ void loop()
     // save current speed settings
     auto tmpMaxSpeed = stepper.maxSpeed();
     auto tmpSpeed = stepper.speed();
-    stepper.setMaxSpeed(BTN_MAX_SPEED);
     // run loop while buttons are pressed
+    float speed = BTN_MIN_SPEED;
+    stepper.setSpeed(speed);
+    stepper.setMaxSpeed(readButtonSpeed());
     while (btn_in == LOW || btn_out == LOW)
     {
-      float speed = readButtonSpeed();
       debugSerial.print("Speed from poti: ");
       debugSerial.println(speed);
-      stepper.setMaxSpeed(speed);
-      int step = map(speed, BTN_MIN_SPEED, BTN_MAX_SPEED, BTN_MIN_STEP, BTN_MAX_STEP);
-      if (btn_in == LOW)
+      stepper.setMaxSpeed(readButtonSpeed());
+      if (btn_in == LOW && speed < 0)
       {
-        debugSerial.print("Button forward ");
-        debugSerial.print(step);
-        debugSerial.println(" steps");
+        speed = BTN_MIN_SPEED;
+        debugSerial.println("Button forward ");
       }
-      else if (btn_out == LOW)
+      else if (btn_out == LOW && speed > 0)
       {
         // prevent negative values
-        step = -min(stepper.currentPosition(), step);
-        speed = -speed;
-        debugSerial.print("Button backward ");
-        debugSerial.print(step);
-        debugSerial.println(" steps");
+        speed = -BTN_MIN_SPEED;
+        debugSerial.println("Button backward ");
       }
-      stepper.move(step);
-      stepper.setSpeed(speed); // overwrite computed speed
-      debugSerial.print("Moving from ");
-      debugSerial.print(stepper.currentPosition());
-      debugSerial.print(" to ");
-      debugSerial.print(stepper.targetPosition());
-      debugSerial.print(" with speed ");
-      debugSerial.print(stepper.speed());
-      debugSerial.print(" and max speed: ");
-      debugSerial.println(stepper.maxSpeed());
-      // move unless stop button is pressed or target position reached
-      while (stepper.runSpeedToPosition())
-      {
-        debugSerial.println("Running....");
-      }
+      speed = constrain(speed * BTN_ACCEL_FACTOR, -stepper.maxSpeed(), stepper.maxSpeed());
+      debugSerial.print("Set speed to ");
+      debugSerial.println(speed);
+      stepper.setSpeed(speed); // set speed with direction
 
+      // read new button values
       btn_in = digitalRead(BTN_IN);
       btn_out = digitalRead(BTN_OUT);
     }
 
-    // stop and ensure the stepper isn't moving anymore
+    // // stop and ensure the stepper isn't moving anymore
     stepper.moveTo(stepper.currentPosition());
     while (stepper.distanceToGo())
     {
       debugSerial.println("Stopping motor...");
-      stepper.runSpeed();
     }
 
     // reset speed
@@ -434,6 +422,7 @@ void loop()
 
     millisLastMove = millis();
     currentPosition = targetPosition = stepper.currentPosition();
+    isInManualMode = false;
   }
   else
   {
@@ -493,14 +482,20 @@ long hexstr2long(String line)
 
 static void intHandler()
 {
-  stepper.run();
+  if (isInManualMode)
+  {
+    stepper.runSpeed();
+  }
+  else
+  {
+    stepper.run();
+  }
 }
 
 int readButtonSpeed()
 {
-  // analogRead 0 -> max speed, 1023 -> min speed so if there is nothing connected 
-  // the motor will run with minimal speed and it allows to use a button connected
-  // to GND instead of a poti to switch from min to max speed
-  auto speedVal = map(analogRead(BTN_POTI_SPEED), 900, 50, BTN_MIN_SPEED, BTN_MAX_SPEED);
+  // analogRead 0 -> min speed, 1023 -> max speed so if there is nothing connected
+  // the motor will accelerate to max speed
+  auto speedVal = map(analogRead(BTN_POTI_SPEED), 50, 900, BTN_MIN_SPEED, BTN_MAX_SPEED);
   return max(min(speedVal, BTN_MAX_SPEED), BTN_MIN_SPEED);
 }
