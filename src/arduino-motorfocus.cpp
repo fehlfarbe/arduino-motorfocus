@@ -12,7 +12,7 @@
 #define BTN_POTI_SPEED A0
 #define BTN_MIN_SPEED 8
 #define BTN_MAX_SPEED 512
-#define BTN_ACCEL_FACTOR 1.2f
+#define BTN_ACCEL_FACTOR 1.05f
 
 #define PIN_DRIVER_SLEEP 4
 #define PIN_DRIVER_DIR 3
@@ -403,6 +403,7 @@ void loop()
       debugSerial.print("Set speed to ");
       debugSerial.println(speed);
       stepper.setSpeed(speed); // set speed with direction
+      delay(25);
 
       // read new button values
       btn_in = digitalRead(BTN_IN);
