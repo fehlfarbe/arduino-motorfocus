@@ -29,7 +29,7 @@ Select config `A4988driver` in VSCode bottom bar (step 4)
 
 ### Wiring for in/out buttons
 
-The internal pullups are active so you have to connect your buttons to GND.
+The internal pullups are active so you have to connect your buttons for manual focus to GND. The potentiometer is optional and can limit the maximum speed for manual focus.
 ![Buttons wiring](res/wiring_buttons.png)
 
 ### Wiring for temperature sensor DS18B20
