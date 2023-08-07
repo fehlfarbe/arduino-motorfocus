@@ -9,7 +9,10 @@
 
 #define BTN_IN 7
 #define BTN_OUT 8
-#define BTN_STEP 32
+#define BTN_POTI_SPEED A0
+#define BTN_MIN_SPEED 8
+#define BTN_MAX_SPEED 512
+#define BTN_ACCEL_FACTOR 1.05f
 
 #define PIN_DRIVER_SLEEP 4
 #define PIN_DRIVER_DIR 3
@@ -21,7 +24,7 @@
 
 // #define USE_DRIVER
 
-//#define DEBUG
+// #define DEBUG
 #ifdef DEBUG
 SoftwareSerial debugSerial(9, 10);
 #else
@@ -54,6 +57,7 @@ long millisLastMove = 0;
 const long millisDisableDelay = 15000;
 bool isRunning = false;
 bool isEnabled = false;
+bool isInManualMode = false;
 
 // read commands
 bool eoc = false;
@@ -62,10 +66,11 @@ String line;
 // function declarations
 long hexstr2long(String line);
 static void intHandler();
+int readButtonSpeed();
 
 /*************************************
  * SETUP
-*************************************/
+ *************************************/
 void setup()
 {
   Serial.begin(9600);
@@ -88,7 +93,7 @@ void setup()
   millisLastMove = millis();
 
   // read saved position from EEPROM
-  //EEPROM.put(0, (long)0);
+  // EEPROM.put(0, (long)0);
   EEPROM.get(0, currentPosition);
   // prevent negative values if EEPROM is empty
   currentPosition = max(0, currentPosition);
@@ -105,6 +110,7 @@ void setup()
   // setup buttons
   pinMode(BTN_IN, INPUT_PULLUP);
   pinMode(BTN_OUT, INPUT_PULLUP);
+  pinMode(BTN_POTI_SPEED, INPUT_PULLUP);
 
   // init timer
   Timer1.initialize(PERIOD_US);
@@ -113,7 +119,7 @@ void setup()
 
 /*************************************
  * LOOP
-*************************************/
+ *************************************/
 void loop()
 {
 
@@ -135,7 +141,9 @@ void loop()
     if (len >= 2)
     {
       cmd = line.substring(0, 2);
-    } else {
+    }
+    else
+    {
       cmd = line.substring(0, 1);
     }
     if (len > 2)
@@ -147,7 +155,8 @@ void loop()
     debugSerial.println(line);
     debugSerial.print("Command: ");
     debugSerial.print(cmd);
-    if(param.length()){
+    if (param.length())
+    {
       debugSerial.print(" Param: ");
       debugSerial.print(param);
     }
@@ -199,7 +208,7 @@ void loop()
     // get the new motor position (target)
     if (cmd.equalsIgnoreCase("GN"))
     {
-      //pos = stepper.targetPosition();
+      // pos = stepper.targetPosition();
       char tempString[6];
       sprintf(tempString, "%04lX", targetPosition);
       Serial.print(tempString);
@@ -231,7 +240,7 @@ void loop()
     // get the temperature coefficient
     if (cmd.equalsIgnoreCase("GC"))
     {
-      //Serial.print("02#");
+      // Serial.print("02#");
       Serial.print((byte)t_coeff, HEX);
       Serial.print('#');
     }
@@ -239,7 +248,7 @@ void loop()
     // set the temperature coefficient
     if (cmd.equalsIgnoreCase("SC"))
     {
-      //debugSerial.println(param);
+      // debugSerial.println(param);
       if (param.length() > 4)
       {
         param = param.substring(param.length() - 4);
@@ -248,9 +257,9 @@ void loop()
 
       if (param.startsWith("F"))
       {
-        //debugSerial.println("negative");
-        //debugSerial.println(strtol("FFFF", NULL, 16));
-        //debugSerial.println(strtol(param.c_str(), NULL, 16));
+        // debugSerial.println("negative");
+        // debugSerial.println(strtol("FFFF", NULL, 16));
+        // debugSerial.println(strtol(param.c_str(), NULL, 16));
         t_coeff = ((0xFFFF - strtol(param.c_str(), NULL, 16)) / -2.0f) - 0.5f;
       }
       else
@@ -259,7 +268,7 @@ void loop()
       }
       debugSerial.print("t_coeff: ");
       debugSerial.println(t_coeff);
-      //Serial.print("02#");
+      // Serial.print("02#");
     }
 
     // get the current motor speed, only values of 02, 04, 08, 10, 20
@@ -316,20 +325,20 @@ void loop()
     // set new motor position
     if (cmd.equalsIgnoreCase("SN"))
     {
-      //Serial.println(param);
+      // Serial.println(param);
       debugSerial.print("new target position ");
       debugSerial.print(targetPosition);
       debugSerial.print(" -> ");
       targetPosition = hexstr2long(param);
       debugSerial.println(targetPosition);
-      //Serial.println(targetPosition);
-      //stepper.moveTo(pos);
+      // Serial.println(targetPosition);
+      // stepper.moveTo(pos);
     }
     // initiate a move
     if (cmd.equalsIgnoreCase("FG"))
     {
-      //isRunning = 1;
-      //running = true;
+      // isRunning = 1;
+      // running = true;
       stepper.enableOutputs();
       isEnabled = true;
       stepper.moveTo(targetPosition);
@@ -337,10 +346,10 @@ void loop()
     // stop a move
     if (cmd.equalsIgnoreCase("FQ"))
     {
-      //isRunning = 0;
-      //stepper.moveTo(stepper.currentPosition());
-      //stepper.run();
-      //running = false;
+      // isRunning = 0;
+      // stepper.moveTo(stepper.currentPosition());
+      // stepper.run();
+      // running = false;
       stepper.stop();
     }
   }
@@ -351,6 +360,8 @@ void loop()
   // move motor if not done
   if (stepper.distanceToGo() != 0)
   {
+    debugSerial.print("Has distance to go: ");
+    debugSerial.println(stepper.distanceToGo());
     isRunning = true;
     millisLastMove = millis();
     currentPosition = stepper.currentPosition();
@@ -358,40 +369,61 @@ void loop()
   // handle manual buttons
   else if (btn_in == LOW || btn_out == LOW)
   {
-    if(!isEnabled){
+    isInManualMode = true;
+    // enable motor outputs if motor is idle
+    if (!isEnabled)
+    {
       stepper.enableOutputs();
       isEnabled = true;
     }
+    // save current speed settings
+    auto tmpMaxSpeed = stepper.maxSpeed();
+    auto tmpSpeed = stepper.speed();
+    // run loop while buttons are pressed
+    float speed = BTN_MIN_SPEED;
+    stepper.setSpeed(speed);
+    stepper.setMaxSpeed(readButtonSpeed());
     while (btn_in == LOW || btn_out == LOW)
     {
-      int8_t step = 0;
-      if (btn_in == LOW)
+      debugSerial.print("Speed from poti: ");
+      debugSerial.println(speed);
+      stepper.setMaxSpeed(readButtonSpeed());
+      if (btn_in == LOW && speed < 0)
       {
-        step = BTN_STEP;
-        debugSerial.println("Button forward");
+        speed = BTN_MIN_SPEED;
+        debugSerial.println("Button forward ");
       }
-      else if(btn_out == LOW)
+      else if (btn_out == LOW && speed > 0)
       {
         // prevent negative values
-        step = -min(stepper.currentPosition(), BTN_STEP);
-        debugSerial.println("Button backward");
+        speed = -BTN_MIN_SPEED;
+        debugSerial.println("Button backward ");
       }
-      debugSerial.print("Moving to ");
-      debugSerial.println(stepper.currentPosition() + step);
-      stepper.move(step);
-      stepper.runSpeedToPosition();
+      speed = constrain(speed * BTN_ACCEL_FACTOR, -stepper.maxSpeed(), stepper.maxSpeed());
+      debugSerial.print("Set speed to ");
+      debugSerial.println(speed);
+      stepper.setSpeed(speed); // set speed with direction
+      delay(25);
 
+      // read new button values
       btn_in = digitalRead(BTN_IN);
       btn_out = digitalRead(BTN_OUT);
     }
-    stepper.stop();
-    // ensure the stepper isn't moving anymore
-    while(stepper.distanceToGo()){
-      stepper.run();
+
+    // // stop and ensure the stepper isn't moving anymore
+    stepper.moveTo(stepper.currentPosition());
+    while (stepper.distanceToGo())
+    {
+      debugSerial.println("Stopping motor...");
     }
-    
+
+    // reset speed
+    stepper.setMaxSpeed(tmpMaxSpeed);
+    stepper.setSpeed(tmpSpeed);
+
     millisLastMove = millis();
     currentPosition = targetPosition = stepper.currentPosition();
+    isInManualMode = false;
   }
   else
   {
@@ -408,7 +440,8 @@ void loop()
         debugSerial.print(lastSavedPosition);
         debugSerial.println(" to EEPROM");
       }
-      if(isEnabled){
+      if (isEnabled)
+      {
         // set motor to sleep state
         stepper.disableOutputs();
         isEnabled = false;
@@ -450,5 +483,20 @@ long hexstr2long(String line)
 
 static void intHandler()
 {
-  stepper.run();
+  if (isInManualMode)
+  {
+    stepper.runSpeed();
+  }
+  else
+  {
+    stepper.run();
+  }
+}
+
+int readButtonSpeed()
+{
+  // analogRead 0 -> min speed, 1023 -> max speed so if there is nothing connected
+  // the motor will accelerate to max speed
+  auto speedVal = map(analogRead(BTN_POTI_SPEED), 50, 900, BTN_MIN_SPEED, BTN_MAX_SPEED);
+  return max(min(speedVal, BTN_MAX_SPEED), BTN_MIN_SPEED);
 }
