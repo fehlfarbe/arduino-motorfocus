@@ -54,7 +54,7 @@ jobs:
           for asset in `ls ./release/*.hex`; do
             assets+=("-a" "$asset")
           done
-          tag_name="$(git describe --tags)"
+          tag_name="$(git tag --sort=taggerdate | tail -1)"
           hub release create "${assets[@]}" -m "$tag_name" "$tag_name"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
