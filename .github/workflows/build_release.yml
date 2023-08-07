@@ -1,0 +1,60 @@
+name: Build Releases
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      # - name: Build PlatformIO examples
+      #   run: pio ci -e nanoatmega328 -e nanoatmega328_A4988driver -e nanoatmega328new -e nanoatmega328new_A4988driver -e promicro16 -e promicro16_A4988driver --project-conf platformio.ini src/*
+
+      - name: Build releases
+        run: ./build_envs.sh
+
+      # - name: Create Draft Release
+      #   id: create_release
+      #   uses: actions/create-release@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     tag_name: ${{ github.ref }}
+      #     release_name: Release ${{ github.ref }}
+      #     draft: true
+      #     prerelease: false
+      
+      # - name: Upload releases
+      #   id: upload_releases
+        # uses: actions/upload-release-asset@v1.0.1
+        # env:
+        #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # with:
+        #   upload_url: ${{ steps.create_release.outputs.upload_url }}
+        #   asset_path: .releases/*.gz
+        #   # asset_name: ${{ matrix.build }}.gz
+        #   asset_content_type: application/zip
+      - uses: actions/checkout@v2
+      - run: |
+          set -x
+          assets=()
+          for asset in `ls ./release/*.hex`; do
+            assets+=("-a" "$asset")
+          done
+          tag_name="$(git describe --tags)"
+          hub release create "${assets[@]}" -m "$tag_name" "$tag_name"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
