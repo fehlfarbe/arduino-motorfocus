@@ -55,7 +55,6 @@ unsigned long targetPosition = 0;
 unsigned long lastSavedPosition = 0;
 long millisLastMove = 0;
 const long millisDisableDelay = 15000;
-bool isRunning = false;
 bool isEnabled = false;
 bool isInManualMode = false;
 
@@ -175,7 +174,6 @@ void loop()
     {
       stepper.setCurrentPosition(8000);
       stepper.moveTo(0);
-      isRunning = true;
     }
     // firmware value, always return "10"
     if (cmd.equalsIgnoreCase("GV"))
@@ -302,7 +300,7 @@ void loop()
     // motor is moving - 01 if moving, 00 otherwise
     if (cmd.equalsIgnoreCase("GI"))
     {
-      if (abs(targetPosition - currentPosition) > 0)
+      if (stepper.distanceToGo() != 0)
       {
         Serial.print("01#");
         debugSerial.print("Motor is moving, target = ");
@@ -337,8 +335,6 @@ void loop()
     // initiate a move
     if (cmd.equalsIgnoreCase("FG"))
     {
-      // isRunning = 1;
-      // running = true;
       stepper.enableOutputs();
       isEnabled = true;
       stepper.moveTo(targetPosition);
@@ -346,10 +342,6 @@ void loop()
     // stop a move
     if (cmd.equalsIgnoreCase("FQ"))
     {
-      // isRunning = 0;
-      // stepper.moveTo(stepper.currentPosition());
-      // stepper.run();
-      // running = false;
       stepper.stop();
     }
   }
@@ -362,7 +354,6 @@ void loop()
   {
     debugSerial.print("Has distance to go: ");
     debugSerial.println(stepper.distanceToGo());
-    isRunning = true;
     millisLastMove = millis();
     currentPosition = stepper.currentPosition();
   }
@@ -430,7 +421,6 @@ void loop()
     // check if motor was'nt moved for several seconds and save position and disable motors
     if (millis() - millisLastMove > millisDisableDelay)
     {
-      isRunning = false;
       // Save current location in EEPROM
       if (lastSavedPosition != currentPosition)
       {
@@ -449,8 +439,6 @@ void loop()
       }
     }
   }
-
-  digitalWrite(LED_BUILTIN, isRunning);
 }
 
 // read the command until the terminating # character
@@ -483,14 +471,19 @@ long hexstr2long(String line)
 
 static void intHandler()
 {
+  bool moving = false;
   if (isInManualMode)
   {
     stepper.runSpeed();
+    moving = abs(stepper.speed()) > 0;
   }
   else
   {
     stepper.run();
+    moving = stepper.distanceToGo() != 0;
   }
+
+  digitalWrite(LED_BUILTIN, moving);
 }
 
 int readButtonSpeed()
