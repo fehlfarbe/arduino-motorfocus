@@ -5,3 +5,7 @@ test/*
 lib/*
 include/*
 release
+
+hardware/arduino-motorfocus/gerbers/*
+hardware/arduino-motorfocus/*-backups
+hardware/arduino-motorfocus/fp-info-cache
