@@ -71,6 +71,13 @@ The logfile is located in `%HOMEPATH%\Documents\ASCOM`
 
 You can also connect an USB-TTL converter to GPIO 10 to see all commands sent by your computer and some debug messages.
 
+## PCB
+
+I made a simple PCB that connects all the parts and supports Pololu style driver boards and ULN2003A breakout board. The KiCAD project and gerber files are located at `hardware`.
+![PCB](res/pcb.jpg)
+![Populated PCB](res/pcb_populated.jpg)
+
+
 ## Arduino-motorfocus mounted on TS65/420 Quadruplet
 
 ![alt text](res/image01.jpg)

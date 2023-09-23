@@ -5,3 +5,7 @@ test/*
 lib/*
 include/*
 release
+
+hardware/gerbers/*
+hardware/*-backups
+hardware/fp-info-cache
