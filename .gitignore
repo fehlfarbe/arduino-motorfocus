@@ -6,6 +6,6 @@ lib/*
 include/*
 release
 
-hardware/arduino-motorfocus/gerbers/*
-hardware/arduino-motorfocus/*-backups
-hardware/arduino-motorfocus/fp-info-cache
+hardware/gerbers/*
+hardware/*-backups
+hardware/fp-info-cache
