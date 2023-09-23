@@ -22,6 +22,11 @@
 
 #define PERIOD_US 2000
 
+// Maximum motor speed multiplicator in steps per second
+#define SPEED_MULTIPLICATOR 30
+// Motor acceleration in steps per second per second
+#define ACCELERATION 100
+
 // #define USE_DRIVER
 
 // #define DEBUG
@@ -45,9 +50,8 @@ DallasTemperature sensors(&oneWire);
 // multiplier of SPEEDMUX, currently max speed is 480.
 int speedFactor = 16;
 int speedFactorRaw = 4;
-int speedMult = 30;
 
-float t_coeff = 0;
+float tCoeff = 0;
 
 // button
 unsigned long currentPosition = 0;
@@ -81,8 +85,8 @@ void setup()
 
   // initalize motor
   debugSerial.println("init motor driver...");
-  stepper.setMaxSpeed(speedFactor * speedMult);
-  stepper.setAcceleration(100);
+  stepper.setMaxSpeed(speedFactor * SPEED_MULTIPLICATOR);
+  stepper.setAcceleration(ACCELERATION);
 #ifdef USE_DRIVER
   debugSerial.println("Using A4988 driver");
   stepper.setEnablePin(PIN_DRIVER_SLEEP);
@@ -105,6 +109,9 @@ void setup()
 
   // init temperature sensor
   sensors.begin();
+  if(sensors.getDeviceCount()){
+    debugSerial.println("Found DS18B20 temperature sensor!");
+  }
 
   // setup buttons
   pinMode(BTN_IN, INPUT_PULLUP);
@@ -239,7 +246,7 @@ void loop()
     if (cmd.equalsIgnoreCase("GC"))
     {
       // Serial.print("02#");
-      Serial.print((byte)t_coeff, HEX);
+      Serial.print((byte)tCoeff, HEX);
       Serial.print('#');
     }
 
@@ -258,14 +265,14 @@ void loop()
         // debugSerial.println("negative");
         // debugSerial.println(strtol("FFFF", NULL, 16));
         // debugSerial.println(strtol(param.c_str(), NULL, 16));
-        t_coeff = ((0xFFFF - strtol(param.c_str(), NULL, 16)) / -2.0f) - 0.5f;
+        tCoeff = ((0xFFFF - strtol(param.c_str(), NULL, 16)) / -2.0f) - 0.5f;
       }
       else
       {
-        t_coeff = strtol(param.c_str(), NULL, 16) / 2.0f;
+        tCoeff = strtol(param.c_str(), NULL, 16) / 2.0f;
       }
       debugSerial.print("t_coeff: ");
-      debugSerial.println(t_coeff);
+      debugSerial.println(tCoeff);
       // Serial.print("02#");
     }
 
@@ -288,7 +295,7 @@ void loop()
 
       // SpeedFactor: smaller value means faster
       speedFactor = 32 / speedFactorRaw;
-      stepper.setMaxSpeed(speedFactor * speedMult);
+      stepper.setMaxSpeed(speedFactor * SPEED_MULTIPLICATOR);
     }
 
     // whether half-step is enabled or not, always return "00"

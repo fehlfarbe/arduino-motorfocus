@@ -24,7 +24,7 @@ Motor focuser for Starlight Feather Touch 2" by Cover1987: <https://www.thingive
 
 ### Wiring for A4988 driver
 
-Select config `A4988driver` in VSCode bottom bar (step 4)
+Select config `A4988driver` in VSCode bottom bar (step 4). You can change the microstep resolution (full step, half step, ...) with MS1, MS2, MS3 pins on the driver board. See more at [Pololu A4988 Stepper Motor Driver doc](https://www.pololu.com/product/1182) (Step (and microstep) size). If all pins are unconnected the driver will run in full step mode.
 ![Stepper with driver wiring](res/wiring_driver.png)
 
 ### Wiring for in/out buttons
@@ -70,6 +70,18 @@ If there are different errors, please [open an issue](https://github.com/fehlfar
 The logfile is located in `%HOMEPATH%\Documents\ASCOM`
 
 You can also connect an USB-TTL converter to GPIO 10 to see all commands sent by your computer and some debug messages.
+
+### The motor moves very slow
+
+* Don't use a DEBUG build because SoftwareSerial printing slows down the microcontroller
+* Check the full/half/... microstep setup of your driver
+* Increase SPEED_MULTIPLICATOR and ACCELERATION in arduino-motorfocus.h
+
+### The motor doesn't move
+
+* Check wiring between microcontroller and your driver
+* Check if manual focusing via buttons is working
+* Check wiring between motor and driver, sometimes the motor coil cables are mixed up
 
 ## PCB
 
