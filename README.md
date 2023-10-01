@@ -9,6 +9,12 @@ Motor focuser for Starlight Feather Touch 2" by Cover1987: <https://www.thingive
 
 ## Installation
 
+### Webupload via browser's Web Serial API
+
+Only available for Chrome/Chromium at the moment. Visit <https://fehlfarbe.github.io/arduino-motorfocus>, connect your Arduino Nano and click the right button to upload the latest version :)
+
+### Install via PlatformIO
+
 1. Download and install [PlatformIO](https://platformio.org/install/ide?install=vscode)
 2. Clone or download this project and unzip it
 3. Open project with PlatformIO
