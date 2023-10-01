@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+        crossorigin="anonymous"></script>
+    <script src="https://github.com/dbuezas/arduino-web-uploader/releases/download/v1.1.2/main.js"></script>
+    <title>arduino-motorfocus webupload</title>
+</head>
+
+<body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root">
+        <h1>Arduino-motorfocus webupload</h1>
+        This is a simple webuploader for arduino-motorfocus so you don't have to download and compile it yourself. Only
+        works with Chrome/Chromium and Browser Serial at the moment.
+
+        <h2>Arduino Nano (new bootloader)</h2>
+        <button arduino-uploader class="btn btn-primary"
+            hex-href="https://github.com/fehlfarbe/arduino-motorfocus/releases/download/v1.0.1/arduino-motorfocus-nanoatmega328new-v1.0.1.hex"
+            board="nano">
+            Upload arduino-motorfocus v1.0.1 to Arduino Nano
+            <span class="upload-progress"></span>
+        </button>
+        <button arduino-uploader class="btn btn-primary"
+            hex-href="https://github.com/fehlfarbe/arduino-motorfocus/releases/download/v1.0.1/arduino-motorfocus-nanoatmega328new_A4988driver-v1.0.1.hex"
+            board="nano">
+            Upload arduino-motorfocus v1.0.1 with enabled A4988 motor driver to Arduino Nano
+            <span class="upload-progress"></span>
+        </button>
+        <h2>Arduino Nano (old bootloader)</h2>
+        <button arduino-uploader class="btn btn-primary"
+            hex-href="https://github.com/fehlfarbe/arduino-motorfocus/releases/download/v1.0.1/arduino-motorfocus-nanoatmega328-v1.0.1.hex"
+            board="nanoOldBootloader">
+            Upload arduino-motorfocus v1.0.1 to Arduino Nano
+            <span class="upload-progress"></span>
+        </button>
+        <button arduino-uploader class="btn btn-primary"
+            hex-href="https://github.com/fehlfarbe/arduino-motorfocus/releases/download/v1.0.1/arduino-motorfocus-nanoatmega328_A4988driver-v1.0.1.hex"
+            board="nanoOldBootloader">
+            Upload arduino-motorfocus v1.0.1 with enabled A4988 motor driver to Arduino Nano
+            <span class="upload-progress"></span>
+        </button>
+    </div>
+</body>
+
+</html>
