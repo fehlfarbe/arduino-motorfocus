@@ -7,31 +7,66 @@
 #include <TimerOne.h>
 #include "DummySerial.h"
 
+// button and button speed config
+#ifndef BTN_IN
 #define BTN_IN 7
+#endif
+#ifndef BTN_OUT
 #define BTN_OUT 8
+#endif
+#ifndef BTN_POTI_SPEED
 #define BTN_POTI_SPEED A0
+#endif
+
 #define BTN_MIN_SPEED 8
 #define BTN_MAX_SPEED 512
 #define BTN_ACCEL_FACTOR 1.05f
 
+// driver config
+#ifndef PIN_DRIVER_SLEEP
 #define PIN_DRIVER_SLEEP 4
-#define PIN_DRIVER_DIR 3
-#define PIN_DRIVER_STEP 5
+#endif
 
+#ifndef PIN_DRIVER_DIR
+#define PIN_DRIVER_DIR 3
+#endif
+#ifndef PIN_DRIVER_STEP
+#define PIN_DRIVER_STEP 5
+#endif
+
+#ifndef PIN_DRIVER_SLEEP_INVERTED
+#define PIN_DRIVER_SLEEP_INVERTED false
+#endif
+
+#ifndef PIN_DRIVER_DIR_INVERTED
+#define PIN_DRIVER_DIR_INVERTED false
+#endif
+
+#ifndef PIN_DRIVER_STEP_INVERTED
+#define PIN_DRIVER_STEP_INVERTED false
+#endif
+
+// one wire bus / temperature sensor config
+#ifndef ONE_WIRE_BUS
 #define ONE_WIRE_BUS 2
+#endif
 
 #define PERIOD_US 2000
+
 
 // Maximum motor speed multiplicator in steps per second
 #define SPEED_MULTIPLICATOR 30
 // Motor acceleration in steps per second per second
 #define ACCELERATION 100
 
-// #define USE_DRIVER
-
-// #define DEBUG
+#ifndef DEBUG_RX
+#define DEBUG_RX A1
+#endif
+#ifndef DEBUG_TX
+#define DEBUG_TX A2
+#endif
 #ifdef DEBUG
-SoftwareSerial debugSerial(9, 10);
+SoftwareSerial debugSerial(DEBUG_RX, DEBUG_TX);
 #else
 DummySerial debugSerial;
 #endif
@@ -90,6 +125,7 @@ void setup()
 #ifdef USE_DRIVER
   debugSerial.println("Using A4988 driver");
   stepper.setEnablePin(PIN_DRIVER_SLEEP);
+  stepper.setPinsInverted(PIN_DRIVER_DIR_INVERTED, PIN_DRIVER_STEP_INVERTED, PIN_DRIVER_SLEEP_INVERTED);
   stepper.disableOutputs();
   isEnabled = false;
 #endif
