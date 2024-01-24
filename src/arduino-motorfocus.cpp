@@ -236,9 +236,13 @@ void loop()
       }
       debugSerial.print("Current temperature ");
       debugSerial.println(temperature);
-      byte t_int = (byte)temperature << 1;
-      t_int += round(temperature - (byte)temperature);
-      Serial.print(t_int, HEX);
+      // convert to 16bit hex number
+      // INDI reads temp via static_cast<int16_t>(temp) / 2.0;
+      // so multiply temperature by 2 and cast to int16
+      int16_t t_int = (int16_t)(temperature*2);
+      char tempString[5];
+      sprintf(tempString, "%04X", (int16_t)t_int);
+      Serial.print(tempString);
       Serial.print('#');
     }
 
