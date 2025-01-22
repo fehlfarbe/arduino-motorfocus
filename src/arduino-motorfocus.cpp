@@ -1,15 +1,23 @@
 #include <Arduino.h>
-#include <SoftwareSerial.h>
 #include <AccelStepper.h>
 #include <EEPROM.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <TimerOne.h>
 #include "DummySerial.h"
+#ifndef ESP32
+#include <SoftwareSerial.h>
+#endif
+#ifdef USE_BLE
+#include <BleSerial.h>
+#include <esp_attr.h>
+#include <esp_task_wdt.h>
+#include <driver/rtc_io.h>
+#endif
 
 #define BTN_IN 7
 #define BTN_OUT 8
-#define BTN_POTI_SPEED A0
+#define BTN_POTI_SPEED 1
 #define BTN_MIN_SPEED 8
 #define BTN_MAX_SPEED 512
 #define BTN_ACCEL_FACTOR 1.05f
@@ -27,13 +35,23 @@
 // Motor acceleration in steps per second per second
 #define ACCELERATION 100
 
-// #define USE_DRIVER
-
-// #define DEBUG
+// setup command serial and debug serial port
+#ifdef USE_BLE
+#define DEBUG_BAUDRATE 115200
+BleSerial cmdSerial;
+HardwareSerial debugSerial = Serial;
+#else
+#define DEBUG_BAUDRATE 9600
 #ifdef DEBUG
 SoftwareSerial debugSerial(9, 10);
 #else
 DummySerial debugSerial;
+#endif
+#ifdef ARDUINO_AVR_PROMICRO16
+Serial_ cmdSerial = Serial;
+#else
+HardwareSerial cmdSerial = Serial;
+#endif
 #endif
 
 // initialize the stepper library
@@ -67,6 +85,9 @@ bool eoc = false;
 String line;
 
 // function declarations
+#ifdef ESP32
+void serialEvent();
+#endif
 long hexstr2long(String line);
 static void intHandler();
 int readButtonSpeed();
@@ -76,8 +97,16 @@ int readButtonSpeed();
  *************************************/
 void setup()
 {
-  Serial.begin(9600);
-  debugSerial.begin(9600);
+  debugSerial.begin(DEBUG_BAUDRATE);
+#ifdef USE_BLE
+  cmdSerial.begin("arduino-motorfocus", -1);
+  // cmdSerial.setTimeout(10);
+  disableCore0WDT();
+  disableLoopWDT();
+  esp_task_wdt_delete(NULL);
+#else
+  cmdSerial.begin(9600);
+#endif
 
   // setup pins
   pinMode(LED_BUILTIN, OUTPUT);
@@ -99,7 +128,7 @@ void setup()
   // EEPROM.put(0, (long)0);
   EEPROM.get(0, currentPosition);
   // prevent negative values if EEPROM is empty
-  currentPosition = max(0, currentPosition);
+  currentPosition = max(0UL, currentPosition);
 
   stepper.setCurrentPosition(currentPosition);
   lastSavedPosition = currentPosition;
@@ -109,7 +138,8 @@ void setup()
 
   // init temperature sensor
   sensors.begin();
-  if(sensors.getDeviceCount()){
+  if (sensors.getDeviceCount())
+  {
     debugSerial.println("Found DS18B20 temperature sensor!");
   }
 
@@ -185,7 +215,7 @@ void loop()
     // firmware value, always return "10"
     if (cmd.equalsIgnoreCase("GV"))
     {
-      Serial.print("10#");
+      cmdSerial.print("10#");
     }
     // Initiate a temperature conversion the conversion
     // process takes a maximum of 750 milliseconds. The
@@ -202,8 +232,8 @@ void loop()
       currentPosition = stepper.currentPosition();
       char tempString[6];
       sprintf(tempString, "%04lX", currentPosition);
-      Serial.print(tempString);
-      Serial.print("#");
+      cmdSerial.print(tempString);
+      cmdSerial.print("#");
 
       debugSerial.print("current motor position: 0x");
       debugSerial.print(tempString);
@@ -216,8 +246,8 @@ void loop()
       // pos = stepper.targetPosition();
       char tempString[6];
       sprintf(tempString, "%04lX", targetPosition);
-      Serial.print(tempString);
-      Serial.print("#");
+      cmdSerial.print(tempString);
+      cmdSerial.print("#");
 
       debugSerial.print("target motor position: ");
       debugSerial.println(tempString);
@@ -239,25 +269,25 @@ void loop()
       // convert to 16bit hex number
       // INDI reads temp via static_cast<int16_t>(temp) / 2.0;
       // so multiply temperature by 2 and cast to int16
-      int16_t t_int = (int16_t)(temperature*2);
+      int16_t t_int = (int16_t)(temperature * 2);
       char tempString[5];
       sprintf(tempString, "%04X", (int16_t)t_int);
-      Serial.print(tempString);
-      Serial.print('#');
+      cmdSerial.print(tempString);
+      cmdSerial.print('#');
     }
 
     // get the temperature coefficient
     if (cmd.equalsIgnoreCase("GC"))
     {
-      // Serial.print("02#");
-      Serial.print((byte)tCoeff, HEX);
-      Serial.print('#');
+      // cmdSerial.print("02#");
+      cmdSerial.print((byte)tCoeff, HEX);
+      cmdSerial.print('#');
     }
 
     // set the temperature coefficient
     if (cmd.equalsIgnoreCase("SC"))
     {
-      // debugSerial.println(param);
+      // debugcmdSerial.println(param);
       if (param.length() > 4)
       {
         param = param.substring(param.length() - 4);
@@ -277,7 +307,7 @@ void loop()
       }
       debugSerial.print("t_coeff: ");
       debugSerial.println(tCoeff);
-      // Serial.print("02#");
+      // cmdSerial.print("02#");
     }
 
     // get the current motor speed, only values of 02, 04, 08, 10, 20
@@ -285,8 +315,8 @@ void loop()
     {
       char tempString[6];
       sprintf(tempString, "%02X", speedFactorRaw);
-      Serial.print(tempString);
-      Serial.print("#");
+      cmdSerial.print(tempString);
+      cmdSerial.print("#");
 
       debugSerial.print("current motor speed: ");
       debugSerial.println(tempString);
@@ -305,7 +335,7 @@ void loop()
     // whether half-step is enabled or not, always return "00"
     if (cmd.equalsIgnoreCase("GH"))
     {
-      Serial.print("00#");
+      cmdSerial.print("00#");
     }
 
     // motor is moving - 01 if moving, 00 otherwise
@@ -313,7 +343,7 @@ void loop()
     {
       if (stepper.distanceToGo() != 0)
       {
-        Serial.print("01#");
+        cmdSerial.print("01#");
         debugSerial.print("Motor is moving, target = ");
         debugSerial.print(targetPosition);
         debugSerial.print(" current = ");
@@ -321,7 +351,7 @@ void loop()
       }
       else
       {
-        Serial.print("00#");
+        cmdSerial.print("00#");
         debugSerial.println("Motor is not moving");
       }
     }
@@ -334,13 +364,13 @@ void loop()
     // set new motor position
     if (cmd.equalsIgnoreCase("SN"))
     {
-      // Serial.println(param);
+      // cmdSerial.println(param);
       debugSerial.print("new target position ");
       debugSerial.print(targetPosition);
       debugSerial.print(" -> ");
       targetPosition = hexstr2long(param);
       debugSerial.println(targetPosition);
-      // Serial.println(targetPosition);
+      // cmdSerial.println(targetPosition);
       // stepper.moveTo(pos);
     }
     // initiate a move
@@ -450,15 +480,18 @@ void loop()
       }
     }
   }
+
+#ifdef ESP32
+  serialEvent();
+#endif
 }
 
-// read the command until the terminating # character
 void serialEvent()
 {
   // read the command until the terminating # character
-  while (Serial.available() && !eoc)
+  while (cmdSerial.available() && !eoc)
   {
-    char c = Serial.read();
+    char c = cmdSerial.read();
     if (c != '#' && c != ':')
     {
       line = line + c;
@@ -501,6 +534,6 @@ int readButtonSpeed()
 {
   // analogRead 0 -> min speed, 1023 -> max speed so if there is nothing connected
   // the motor will accelerate to max speed
-  auto speedVal = map(analogRead(BTN_POTI_SPEED), 50, 900, BTN_MIN_SPEED, BTN_MAX_SPEED);
+  int speedVal = map(analogRead(BTN_POTI_SPEED), 50, 900, BTN_MIN_SPEED, BTN_MAX_SPEED);
   return max(min(speedVal, BTN_MAX_SPEED), BTN_MIN_SPEED);
 }
