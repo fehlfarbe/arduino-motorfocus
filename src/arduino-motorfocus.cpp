@@ -109,7 +109,8 @@ void setup()
 
   // init temperature sensor
   sensors.begin();
-  if(sensors.getDeviceCount()){
+  if (sensors.getDeviceCount())
+  {
     debugSerial.println("Found DS18B20 temperature sensor!");
   }
 
@@ -239,7 +240,7 @@ void loop()
       // convert to 16bit hex number
       // INDI reads temp via static_cast<int16_t>(temp) / 2.0;
       // so multiply temperature by 2 and cast to int16
-      int16_t t_int = (int16_t)(temperature*2);
+      int16_t t_int = (int16_t)(temperature * 2);
       char tempString[5];
       sprintf(tempString, "%04X", (int16_t)t_int);
       Serial.print(tempString);
@@ -383,13 +384,18 @@ void loop()
     auto tmpSpeed = stepper.speed();
     // run loop while buttons are pressed
     float speed = BTN_MIN_SPEED;
-    stepper.setSpeed(speed);
-    stepper.setMaxSpeed(readButtonSpeed());
+    // disable speed, or motor could move in wrong direction for some steps
+    // because currently, we don't know the direction
+    stepper.setSpeed(0);
+    // update speed/direction while buttons are pressed
     while (btn_in == LOW || btn_out == LOW)
     {
+      // update maximum speed, read from (optional) potentiometer
+      auto maxSpeed = readButtonSpeed();
       debugSerial.print("Speed from poti: ");
-      debugSerial.println(speed);
-      stepper.setMaxSpeed(readButtonSpeed());
+      debugSerial.println(maxSpeed);
+      stepper.setMaxSpeed(maxSpeed);
+      // determine direction
       if (btn_in == LOW && speed < 0)
       {
         speed = BTN_MIN_SPEED;
@@ -397,39 +403,39 @@ void loop()
       }
       else if (btn_out == LOW && speed > 0)
       {
-        // prevent negative values
         speed = -BTN_MIN_SPEED;
         debugSerial.println("Button backward ");
       }
       speed = constrain(speed * BTN_ACCEL_FACTOR, -stepper.maxSpeed(), stepper.maxSpeed());
       debugSerial.print("Set speed to ");
       debugSerial.println(speed);
-      stepper.setSpeed(speed); // set speed with direction
+      // set new speed with direction
+      stepper.setSpeed(speed);
       delay(25);
 
-      // read new button values
+      // read new button states
       btn_in = digitalRead(BTN_IN);
       btn_out = digitalRead(BTN_OUT);
     }
 
-    // // stop and ensure the stepper isn't moving anymore
+    // stop and ensure the stepper isn't moving anymore by setting target to current position
+    isInManualMode = false;
     stepper.moveTo(stepper.currentPosition());
     while (stepper.distanceToGo())
     {
       debugSerial.println("Stopping motor...");
     }
 
-    // reset speed
+    // reset speeds
     stepper.setMaxSpeed(tmpMaxSpeed);
     stepper.setSpeed(tmpSpeed);
 
     millisLastMove = millis();
     currentPosition = targetPosition = stepper.currentPosition();
-    isInManualMode = false;
   }
   else
   {
-    // check if motor was'nt moved for several seconds and save position and disable motors
+    // check if motor hasn't moved for several seconds, save position to EEPROM and disable motors
     if (millis() - millisLastMove > millisDisableDelay)
     {
       // Save current location in EEPROM
@@ -452,7 +458,6 @@ void loop()
   }
 }
 
-// read the command until the terminating # character
 void serialEvent()
 {
   // read the command until the terminating # character
@@ -486,7 +491,7 @@ static void intHandler()
   if (isInManualMode)
   {
     stepper.runSpeed();
-    moving = abs(stepper.speed()) > 0;
+    moving = stepper.speed() != 0;
   }
   else
   {
